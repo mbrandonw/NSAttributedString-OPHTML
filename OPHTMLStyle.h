@@ -20,8 +20,10 @@
  their respective CF types (remember to use __bridge_transfer with CF types). For example:
  
      CTFontRef fontRef = CTFontCreateWithName((CFStringRef)@"HelveticaNeue", 14.0f, NULL);
-     [styles setObject:(__bridge_transfer id)fontRef forKey:(NSString*)kCTFontAttributeName];
+     [attributeValues setObject:(__bridge_transfer id)fontRef forKey:(NSString*)kCTFontAttributeName];
  */
-@property (nonatomic, strong) NSDictionary *styles;
+@property (nonatomic, strong) NSDictionary *attributeValues;
+
+-(id) initWithTagName:(NSString*)tagName attributeValues:(NSDictionary*)attributeValues;
 
 @end

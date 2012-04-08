@@ -10,7 +10,7 @@
 
 @interface NSAttributedString (OPHTML)
 
-+(id) attributedStringWithHTML:(NSString*)html;
-+(id) attributedStringWithHTML:(NSString*)html styles:(NSArray*)styles;
+-(id) initWithHTML:(NSString*)html;
+-(id) initWithHTML:(NSString*)html styles:(NSArray*)styles;
 
 @end

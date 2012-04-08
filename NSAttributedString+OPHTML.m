@@ -7,24 +7,76 @@
 //
 
 #import "NSAttributedString+OPHTML.h"
+#import "OPHTMLStyle.h"
 #import "HTMLParser.h"
 
-@interface NSAttributedString (OPHTML_Private)
+#define kParagraphSeparatorUnicode  @"\u2029"
+
+@interface NSMutableAttributedString (OPHTML_Private)
+-(void) applyStyles:(NSArray*)styles currentNode:(HTMLNode*)currentNode currentLocation:(NSUInteger*)currentLocation;
 @end
 
 @implementation NSAttributedString (OPHTML)
 
-+(id) attributedStringWithHTML:(NSString*)html {
-    return [[self class] attributedStringWithHTML:html styles:nil];
+-(id) initWithHTML:(NSString*)html {
+    return [self initWithHTML:html styles:nil];
 }
 
-+(id) attributedStringWithHTML:(NSString*)html styles:(NSArray*)styles {
+-(id) initWithHTML:(NSString*)html styles:(NSArray*)styles {
     
+    html = [[html componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@""];
+    
+    // parse the html and create a basic attributed string with no stylings
     HTMLParser *parser = [[HTMLParser alloc] initWithString:html error:NULL];
+    HTMLNode *bodyNode = [parser body];
+    NSMutableAttributedString *string = [[NSMutableAttributedString alloc] initWithString:[bodyNode allContents]];
     
-    NSMutableAttributedString *string = [[NSMutableAttributedString alloc] initWithString:[[parser doc] allContents]];
+    // walk the html dom tree recursively and apply styles
+    NSUInteger currentLocation = 0;
+    [string applyStyles:styles currentNode:bodyNode currentLocation:&currentLocation];
     
-    return string;
+    return [self initWithAttributedString:string];
+}
+
+@end
+
+@implementation NSMutableAttributedString (OPHTML)
+
+-(void) applyStyles:(NSArray*)styles currentNode:(HTMLNode*)currentNode currentLocation:(NSUInteger*)currentLocation {
+    
+    NSString *contents = [currentNode allContents];
+    NSRange contentsRange = NSMakeRange(*currentLocation, [contents length]);
+    
+    // manually insert paragraph separators for breaking tags
+    if ([currentNode nodetype] == HTMLPNode || 
+        [currentNode nodetype] == HTMLLiNode || 
+        [currentNode nodetype] == HTMLUlNode || 
+        [currentNode nodetype] == HTMLOlNode) {
+        [self insertAttributedString:[[NSAttributedString alloc] initWithString:@"\u2029"] atIndex:*currentLocation];
+        *currentLocation += 1;
+    }
+    // manually insert line breaks for BR tags
+    if ([[currentNode tagName] isEqualToString:@"br"]) {
+        [self insertAttributedString:[[NSAttributedString alloc] initWithString:@"\u2028"] atIndex:*currentLocation];
+        *currentLocation += 1;
+    }
+    
+    // loop through all of the styles that we can apply to this node
+    NSArray *applicableStyles = [styles filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"%K == %@", @"tagName", [currentNode tagName]]];
+    for (OPHTMLStyle *style in applicableStyles)
+    {
+        [style.attributeValues enumerateKeysAndObjectsUsingBlock:^(NSString *attribute, id value, BOOL *stop) {
+            [self addAttribute:attribute value:value range:contentsRange];
+        }];
+    }
+    
+    // apply styles to children nodes
+    for (HTMLNode *node in [currentNode children])
+        [self applyStyles:styles currentNode:node currentLocation:currentLocation];
+    
+    // advance the location everytime we hit the bottom most text node
+    if ([currentNode nodetype] == HTMLTextNode)
+        *currentLocation += [contents length];
 }
 
 @end
