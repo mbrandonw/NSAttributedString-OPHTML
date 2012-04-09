@@ -25,8 +25,9 @@
 
 -(id) initWithHTML:(NSString*)html styles:(NSArray*)styles {
     
-    // massage the html a little because NSAttributedStrings don't behave like html, e.g. consecutive spaces are preserved, etc...
-    html = [html stringByNormalizingWhitespace];
+    // massage the html a little because NSAttributedStrings don't behave like html, e.g. consecutive spaces are preserved,
+    // newlines create paragraphs, etc...
+    html = [[html stringByNormalizingNewlines] stringByNormalizingConsecutiveWhitespace];
     
     // parse the html and create a basic attributed string with no stylings
     HTMLParser *parser = [[HTMLParser alloc] initWithString:html error:NULL];
@@ -50,14 +51,6 @@
     NSString *contents = [currentNode allContents];
     NSRange contentsRange = NSMakeRange(*currentLocation, [contents length]);
     
-    // manually insert paragraph separators for breaking tags
-    if ([currentNode nodetype] == HTMLPNode || 
-        [currentNode nodetype] == HTMLLiNode || 
-        [currentNode nodetype] == HTMLUlNode || 
-        [currentNode nodetype] == HTMLOlNode) {
-        [self insertAttributedString:[[NSAttributedString alloc] initWithString:@"\u2029"] atIndex:*currentLocation];
-        *currentLocation += 1;
-    }
     // manually insert line breaks for BR tags
     if ([[currentNode tagName] isEqualToString:@"br"]) {
         [self insertAttributedString:[[NSAttributedString alloc] initWithString:@"\u2028"] atIndex:*currentLocation];
@@ -76,6 +69,17 @@
     // apply styles to children nodes
     for (HTMLNode *node in [currentNode children])
         [self applyStyles:styles currentNode:node currentLocation:currentLocation];
+    
+    // manually insert paragraph separators for breaking tags
+    if ([currentNode nodetype] == HTMLPNode || 
+        [currentNode nodetype] == HTMLLiNode || 
+        [currentNode nodetype] == HTMLUlNode || 
+        [currentNode nodetype] == HTMLOlNode ||
+        [[currentNode tagName] isEqualToString:@"h1"] ||
+        [[currentNode tagName] isEqualToString:@"div"]) {
+        [self insertAttributedString:[[NSAttributedString alloc] initWithString:@"\u2029"] atIndex:*currentLocation];
+        *currentLocation += 1;
+    }
     
     // advance the location everytime we hit the bottom most text node
     if ([currentNode nodetype] == HTMLTextNode)
