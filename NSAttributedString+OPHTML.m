@@ -9,6 +9,7 @@
 #import "NSAttributedString+OPHTML.h"
 #import "OPHTMLStyle.h"
 #import "HTMLParser.h"
+#import "OPExtensionKit.h"
 
 #define kParagraphSeparatorUnicode  @"\u2029"
 
@@ -24,11 +25,13 @@
 
 -(id) initWithHTML:(NSString*)html styles:(NSArray*)styles {
     
-    html = [[html componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@""];
+    // massage the html a little because NSAttributedStrings don't behave like html, e.g. consecutive spaces are preserved, etc...
+    html = [html stringByNormalizingWhitespace];
     
     // parse the html and create a basic attributed string with no stylings
     HTMLParser *parser = [[HTMLParser alloc] initWithString:html error:NULL];
     HTMLNode *bodyNode = [parser body];
+    if (! bodyNode) return nil;
     NSMutableAttributedString *string = [[NSMutableAttributedString alloc] initWithString:[bodyNode allContents]];
     
     // walk the html dom tree recursively and apply styles
