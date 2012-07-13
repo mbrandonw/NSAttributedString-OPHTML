@@ -61,9 +61,7 @@
     NSArray *applicableStyles = [styles filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"%K == %@", @"tagName", [currentNode tagName]]];
     for (OPHTMLStyle *style in applicableStyles)
     {
-        [style.attributeValues enumerateKeysAndObjectsUsingBlock:^(NSString *attribute, id value, BOOL *stop) {
-            [self addAttribute:attribute value:value range:contentsRange];
-        }];
+        [self addAttributes:style.attributeValues range:contentsRange];
     }
     
     // apply styles to children nodes
