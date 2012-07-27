@@ -10,9 +10,6 @@
 
 @implementation OPHTMLStyle
 
-@synthesize tagName = _tagName;
-@synthesize attributeValues = _attributeValues;
-
 -(id) initWithTagName:(NSString*)tagName attributeValues:(NSDictionary*)attributeValues {
     if (! (self = [self init]))
         return nil;
